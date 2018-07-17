@@ -2,19 +2,19 @@
     "userName" : "api.publish@royalmail.com",    
     "password" : "SuperDuperCleverUser",
     "elasticUserName" : "elastic",    
-    "elasticPassword" : "PostOffice#1",
+    "elasticPassword" : "xxxxxx",
     "elasticUrl" : "10.105.46.133:9200" ,
     "elasticWinUrl" : "http://10.107.32.137:9200" ,
     "org" : "55a900b10cf272a4b3015a7a",
     "environment" : "55f16d010cf2fae1b6b74fec", 
     "uatEnvironment" : "55e581010cf2b06192d56be3",
     "OtherbaseUrl" : "https://eu.apiconnect.ibmcloud.com",
-    "baseUrl" : "https://apicmgmt.royalmail01.eu-gb.bluemix.net",
+    "baseUrl" : "https://apicmgmt.xxxx.eu-gb.bluemix.net",
     "path" : "/v1/orgs/%s/environments/%s/events?before=%s&after=%s&limit=%s&fields=%s",
     "uatPath" : "/v1/orgs/%s/environments/%s/events?before=%s&after=%s&limit=%s",
     "limit": 5000,
     "min" : 5,
-    "proxy": "http:\/\/SVC_INET_DevOps:S)do0CsA@internet.services.royalmailgroup.net:8080",
+    "proxy": "uid:pwd@internet.services.xxxx.net:8080",
     "fields": "latency,uriPath,statusCode,timestamp,apiName,appName,planName,devOrgName,planName,timeToServeRequest,requestMethod,clientGeoIp"
 
 
