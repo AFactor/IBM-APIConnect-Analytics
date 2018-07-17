@@ -2,14 +2,14 @@
 
 ### Key Info
 
-- hosted:   epcrmg1729@rmgp.royalmailgroup.net
+- hosted:   {{hostName}}
 - Folder : /app/api (after sudo -s)
 - Config file : /app/api/config.json
 - Service: /etc/systemd/system/apinodeapp.service 
 - Log file: /app/api/apim.log
 - Index Name: apim
 - Elastic Instance : local on 9200
-- Source Control : https://andotbt.royalmailgroup.net/projects/BIG/repos/apic-elastic-log-extraction/browse
+- Source Control : {{GitHubUrl}}
 - Cron : Runs every 5 mins.
 
 ### How it works:
