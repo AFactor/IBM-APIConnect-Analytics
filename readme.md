@@ -27,7 +27,9 @@ The nodeJs app can be started as `node app.js` from /app/api and also set as con
 
 ##### Change
 If changes are needed to make in the app, then changes are first needed to pushed in bitbucket and then copied across to the host server. Once that is done the apinodeapp service needs to be restarted.
-
+ - commit:   git commit -m 'comment'
+ - push: git push remote.
+ - scp : from lcoal to remote.
 *Long term: There should be a jenkins flow for this.*
 
 ##### Crontab
