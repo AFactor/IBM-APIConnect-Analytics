@@ -50,17 +50,7 @@ Also service status will give you useful logs.
      main pid: 30445 (node)
        cgroup: /system.slice/apinodeapp.service
                └─30445 /usr/bin/node /app/api/app.js
-    
-    sep 26 14:30:01 epcrmg1729.rmgp.royalmailgroup.net apinodeapp[30445]: encodedcredentials  basic yxbplnb1ymxpc2hacm95ywxtywlslmnvbtptdxblckr1cgvyq2xldmvyvxnlcg==
-    sep 26 14:30:01 epcrmg1729.rmgp.royalmailgroup.net apinodeapp[30445]: this url: https://apicmgmt.royalmail01.eu-gb.bluemix.net/v1/orgs/55a900b10cf272a4b3015a7a/environments/55f16d010cf2fae1b6b74fec/events?before=2017-09-26t13:30:01.799z&after=2017-09-26t13:25:01.799z&limit=5000&fields=latency,uripath,statuscode,timestamp,apiname,appname,planname,devorgname,planname,timetoserverequest,requestmethod,clientgeoip
-    sep 26 14:30:01 epcrmg1729.rmgp.royalmailgroup.net apinodeapp[30445]: proxy:http://svc_inet_devops:s)do0csa@internet.services.royalmailgroup.net:8080
-    sep 26 14:30:09 epcrmg1729.rmgp.royalmailgroup.net apinodeapp[30445]: count 1
-    sep 26 14:30:09 epcrmg1729.rmgp.royalmailgroup.net apinodeapp[30445]: body: 200
-    sep 26 14:30:09 epcrmg1729.rmgp.royalmailgroup.net apinodeapp[30445]: total call to pull: 3296
-    sep 26 14:30:09 epcrmg1729.rmgp.royalmailgroup.net apinodeapp[30445]: next url: https://apicmgmt.royalmail01.eu-gb.bluemix.net/v1/orgs/55a900b10cf272a4b3015a7a/environments/55f16d010cf2fae1b6b74fec/events?next=59ca56600cf235bb62fab69b
-    sep 26 14:30:09 epcrmg1729.rmgp.royalmailgroup.net apinodeapp[30445]: total iteration: 1
-    sep 26 14:30:09 epcrmg1729.rmgp.royalmailgroup.net apinodeapp[30445]: total iteration: 1
-    sep 26 14:30:09 epcrmg1729.rmgp.royalmailgroup.net apinodeapp[30445]: 3296 records added. status: 200 in index apim
+  
 
 
 
