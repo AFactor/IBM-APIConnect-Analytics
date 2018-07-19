@@ -3,20 +3,19 @@
 ### Key Info
 
 - hosted:   {{hostName}}
-- Folder : /app/api (after sudo -s)
+- Folder : {{folderPath}}
 - Config file : /app/api/config.json
 - Service: /etc/systemd/system/apinodeapp.service 
 - Log file: /app/api/apim.log
-- Index Name: apim
-- Elastic Instance : local on 9200
-- Source Control : {{GitHubUrl}}
+
+- Source Control : https://github.lbg.eu-gb.bluemix.net/apie/ibm-api-connect-analytics-extraction
 - Cron : Runs every 5 mins.
 
 ### How it works:
 
 ##### Time Span
 The node.js app calls the IBM API analtycs  REST API to retrieve call data for a timespan.
-http://localhost:3006/api/data?startTime={startTime}&endTime={endTime}'
+http://localhost:2018/api/data?startTime={startTime}&endTime={endTime}'
 When no start or end time is provided, the app will default to T and T-5 mins. http://localhost:3006/api/data
 
 ##### Iteration 
