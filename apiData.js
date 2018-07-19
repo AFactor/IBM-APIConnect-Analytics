@@ -15,6 +15,7 @@ f.getDataFromIBM = function (req, ibmCallback) {
 	
     var startTime = req.query.startTime;
     var endTime = req.query.endTime;
+    var environment = req.query.env;
 	var config = require('./config.json');
     
 	
@@ -33,27 +34,26 @@ f.getDataFromIBM = function (req, ibmCallback) {
 	
     
 
-    var userName = config.userName, 
-        password = config.password,
-        baseUrl = config.baseUrl,
-        pathFormat = config.path,
-        limit = config.limit,
-        env = req.query.uat? config.uatEnvironment : config.environment,
-        org = config.org,
+    var encodedCredentials = config[environment].auth, 
+        baseUrl = config[environment].baseUrl,
+        pathFormat = config[environment].path,
+        limit = config[environment].limit,
+        org = config[environment].org,
+        catalog = config[environment].catalog,
         fields = config.fields;
     
-    var encodedCredentials = new Buffer(util.format('%s:%s', userName, password)).toString('base64');
+    
 
-    var path = util.format(pathFormat, org, env, endTime, startTime, limit, fields);
+    var path = util.format(pathFormat, org, catalog, endTime, startTime, limit, fields);
     var url = baseUrl + path; //;
 
-    console.log("url ", url);
-    console.log("path ", path);
-    console.log("encodedCredentials ", util.format('Basic %s', encodedCredentials));
+    //console.log("url ", url);
+    //console.log("path ", path);
+    //console.log("encodedCredentials ", util.format('Basic %s', encodedCredentials));
 
     var getHeaders = {
         'Content-Type' : 'application/json',
-        'authorization' : util.format('Basic %s', encodedCredentials)//'Basic YXBpbWFuYWdlci9hdmlrLnNlbmd1cHRhQHJveWFsbWFpbC5jb206VzFlbGNvbWUx'
+        'authorization' : encodedCredentials
     };
 
     
@@ -66,18 +66,18 @@ f.getDataFromIBM = function (req, ibmCallback) {
         function() { return count <= total; },
         function(callback) {
             console.log('This Url: ' + calls.nextHref);
-            console.log('proxy:'  + config.proxy);
+            //console.log('proxy:'  + config.proxy);
             request.get({
                 url: calls.nextHref,
-                proxy: config.proxy,
+                //proxy: config.proxy,
                 headers: getHeaders,
                 strictSSL: false
             }, (err, res, body) => {
                     if(err || (res.statusCode!=200))
                     {
-                        err = 'IBM API is returning status ' +  res + '. Please raise a support ticket with IBM';
+                        err = 'IBM API is returning status ' + JSON.stringify(res) + '. Please raise a support ticket with IBM';
                         console.log('err: The program shall not run any more' + err );
-                        return ibmCallback({'start' : startTime, 'end' : endTime, 'error' : err, 'status' : 'n'}, null);
+                        return ibmCallback({'start' : startTime, 'end' : endTime, 'error' : err, 'status' : '500'}, null);
                     }
                     console.log('count ' + count);
                     console.log('body: '  + res.statusCode);
@@ -117,21 +117,20 @@ f.getDataFromIBM = function (req, ibmCallback) {
                         
                     });
                     if(push){
-			//console.log(client);
-			//console.log('client', client);
-                        client.bulk({body: bulkBody},
-                            function(err,resp,status) {
-                                if(err){
-                                    console.log(clc.red(status + '----' + err + " : " + JSON.stringify(bulkBody)));
-				    return ibmCallback({'start' : startTime, 'end' : endTime, 'error' : err, 'status' : 'n'}, null);
-                                }
-                                else{
-                                   console.log(clc.blue(thisCall.calls.length.toString()  + ' records added. Status: ' + status + ' in index apim'));
-                                }
-                            });
+                        return ibmCallback(null, bulkBody);
+                    //     client.bulk({body: bulkBody},
+                    //         function(err,resp,status) {
+                    //             if(err){
+                    //                 console.log(clc.red(status + '----' + err + " : " + JSON.stringify(bulkBody)));
+				    // return ibmCallback({'start' : startTime, 'end' : endTime, 'error' : err, 'status' : 'n'}, null);
+                    //             }
+                    //             else{
+                    //                console.log(clc.blue(thisCall.calls.length.toString()  + ' records added. Status: ' + status + ' in index apim'));
+                    //             }
+                    //         });
                     }
-                    count++;
-                    callback(null, count);
+                    //count++;
+                    //callback(null, count);
         
                 }); 
 

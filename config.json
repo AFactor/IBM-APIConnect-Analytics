@@ -1,21 +1,17 @@
 {
-    "userName" : "api.publish@royalmail.com",    
-    "password" : "SuperDuperCleverUser",
-    "elasticUserName" : "elastic",    
-    "elasticPassword" : "xxxxxx",
-    "elasticUrl" : "10.105.46.133:9200" ,
-    "elasticWinUrl" : "http://10.107.32.137:9200" ,
-    "org" : "55a900b10cf272a4b3015a7a",
-    "environment" : "55f16d010cf2fae1b6b74fec", 
-    "uatEnvironment" : "55e581010cf2b06192d56be3",
-    "OtherbaseUrl" : "https://eu.apiconnect.ibmcloud.com",
-    "baseUrl" : "https://apicmgmt.xxxx.eu-gb.bluemix.net",
-    "path" : "/v1/orgs/%s/environments/%s/events?before=%s&after=%s&limit=%s&fields=%s",
-    "uatPath" : "/v1/orgs/%s/environments/%s/events?before=%s&after=%s&limit=%s",
-    "limit": 5000,
-    "min" : 5,
-    "proxy": "uid:pwd@internet.services.xxxx.net:8080",
+    "elasticUserName": "elastic",
+    "elasticPassword": "xxxxxx",
+    "elasticUrl": "10.105.46.133:9200",
+    "elasticWinUrl": "http://10.107.32.137:9200",
+    "sandbox": {
+        "auth": "Basic YXZpay5zZW5ndXB0YTEaWdoYSZQdXJpMw==",
+        "org": "598b087be4b0dee37e6680d2",
+        "catalog": "599b05d2e4b0dee37e6a2b96",
+        "baseUrl": "https://management01.psd2.sandbox.extranet.group",
+        "path": "/v1/orgs/%s/environments/%s/events?before=%s&after=%s&limit=%s&fields=%s",
+        "limit": 5000,
+        "min": 500,
+        "proxy": "uid:pwd@internet.services.xxxx.net:8080"
+    },
     "fields": "latency,uriPath,statusCode,timestamp,apiName,appName,planName,devOrgName,planName,timeToServeRequest,requestMethod,clientGeoIp"
-
-
-}
+    }
