@@ -38,7 +38,7 @@ Calls the API every 5 mins.
 for every successful run, APIm.log will have one line.
 `"start":"2017-09-26T10:20:01.925Z","end":"2017-09-26T10:25:01.925Z","total":4064,"status":"y"`
 When the run fails, the status is 'n'.
-
+//
 Also service status will give you useful logs.
 
 

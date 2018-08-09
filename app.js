@@ -19,6 +19,7 @@ app.get("/api/batch", function(request, response) {
         if(err){
             response.send( err.error);
         }else{
+           // f1.writeToFile(data);
             response.status(200).send(data);
         }
         //response.end();

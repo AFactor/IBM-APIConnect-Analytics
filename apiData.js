@@ -4,9 +4,8 @@ var util = require("util");
 var f = module.exports = {};
 var async = require("async");
 var Enumerable = require("linq")
-
+var dateFormat = require('dateformat');
 var config = require('./config.json');
-var client = require('./connection.js');  
 var clc = require('cli-color');
 
 f.getDataFromIBM = function (req, ibmCallback) { 
@@ -32,24 +31,27 @@ f.getDataFromIBM = function (req, ibmCallback) {
         console.log( 'Start: ' + startTime + ' End: ' + endTime);
 	}
 	
-    
+    var startTimeFileName = dateFormat(startTime, "ddmmyyyyhhMMssTT");
+    var endTimeFileName = dateFormat(endTime, "ddmmyyyyhhMMssTT");
 
     var encodedCredentials = config[environment].auth, 
         baseUrl = config[environment].baseUrl,
         pathFormat = config[environment].path,
-        limit = config[environment].limit,
+        limit = config.limit,
         org = config[environment].org,
         catalog = config[environment].catalog,
         fields = config.fields;
     
     
+    //files
+
+    let successFile =util.format(config.success_temp_log, startTimeFileName,endTimeFileName );
+    let errorFile =util.format(config.error_temp_log, startTimeFileName,endTimeFileName);
 
     var path = util.format(pathFormat, org, catalog, endTime, startTime, limit, fields);
     var url = baseUrl + path; //;
-
-    //console.log("url ", url);
-    //console.log("path ", path);
-    //console.log("encodedCredentials ", util.format('Basic %s', encodedCredentials));
+    
+   
 
     var getHeaders = {
         'Content-Type' : 'application/json',
@@ -59,14 +61,16 @@ f.getDataFromIBM = function (req, ibmCallback) {
     
     var calls = {"totalCalls":0,"next":"","nextHref": url,"calls":[]};
     var count = 1;
+    var errorHeader=false;
     var total = 1;
-    
-
+    var success =[];
+    var error=[];
+    let writeErrrorStream = fs.createWriteStream(errorFile);
+    let writeSuccessStream = fs.createWriteStream(successFile);
     async.whilst(
         function() { return count <= total; },
-        function(callback) {
+        function(nextCall) {
             console.log('This Url: ' + calls.nextHref);
-            //console.log('proxy:'  + config.proxy);
             request.get({
                 url: calls.nextHref,
                 //proxy: config.proxy,
@@ -79,76 +83,60 @@ f.getDataFromIBM = function (req, ibmCallback) {
                         console.log('err: The program shall not run any more' + err );
                         return ibmCallback({'start' : startTime, 'end' : endTime, 'error' : err, 'status' : '500'}, null);
                     }
-                    console.log('count ' + count);
-                    console.log('body: '  + res.statusCode);
+                    console.log('Iteration No ' + count);
                     var thisCall = JSON.parse(body);
-                    calls.totalCalls = thisCall.totalCalls;
-                    console.log('Total Call to pull: ' + calls.totalCalls);
-
-                    calls.nextHref = thisCall.nextHref;
-                    console.log('Next Url: ' + calls.nextHref);
-                    total = Math.ceil(calls.totalCalls/limit);
-                    console.log('Total iteration: ' + total);
-                    var bulkBody =[];
-                    var push  = false;
-                    thisCall.calls.forEach( function(element, index) {
-                       
-                                push = true;
-                                bulkBody.push({ index:  { _index: 'apim', _type: 'detail'} }
-                                 ,{
-                                    "timestamp" : element.timestamp,
-                                    "api" : element.apiName,
-                                    "app" : element.appName,
-                                    "plan" : element.planName,
-                                    "org" : element.devOrgName,
-                                    "timeToServeRequest" : element.timeToServeRequest,
-                                    "uri" : element.uriPath,
-                                    "statusCode" : element.statusCode,
-                                    "clientIp" : element.clientGeoIp.ip,
-                                    "country" : element.clientGeoIp.country_name,
-                                    "location": { 
-                                         "lat": element.clientGeoIp.latitude,
-                                         "lon": element.clientGeoIp.longitude
-                                        },
-                                    "latency": element.latency
-                                    });
-                                
-                                
-                        
-                    });
-                    if(push){
-                        return ibmCallback(null, bulkBody);
-                    //     client.bulk({body: bulkBody},
-                    //         function(err,resp,status) {
-                    //             if(err){
-                    //                 console.log(clc.red(status + '----' + err + " : " + JSON.stringify(bulkBody)));
-				    // return ibmCallback({'start' : startTime, 'end' : endTime, 'error' : err, 'status' : 'n'}, null);
-                    //             }
-                    //             else{
-                    //                console.log(clc.blue(thisCall.calls.length.toString()  + ' records added. Status: ' + status + ' in index apim'));
-                    //             }
-                    //         });
+                    if(calls.totalCalls==0){
+                        calls.totalCalls = thisCall.totalCalls;
+                        console.log('Total Call to pull: ' + calls.totalCalls);
+                        total = Math.ceil(calls.totalCalls/limit);
+                        console.log('Estimated iteration: ' + total);
                     }
-                    //count++;
-                    //callback(null, count);
+                    calls.nextHref = thisCall.nextHref;
+                    let thisError= thisCall.calls.filter(element => (element.statusCode.startsWith('4') || element.statusCode.startsWith('5')));
+                    if(thisError.length>0){
+                        if(!errorHeader){
+                            errorHeader = true;
+                            writeErrrorStream.write(Object.keys(thisError[0]).join('|')+ '\n');
+                        }
+                        writeErrrorStream.write(thisError.map(e => Object.values(e).join('|')).join('\n'));
+                        //errors.push(thisError);
+                    }
+                    thisSuccess= thisCall.calls.filter(element => element.statusCode.startsWith('2'));
+                    if(thisSuccess.length>0){
+                        thisSuccess.forEach(s => {
+                            success.push( s.apiName + '|' + s.statusCode + '|' + s.requestMethod  );
+                        });
+                        
+                    }
+                    
+        
+                    count++;
+                    nextCall();
+                                
         
                 }); 
 
             },
-            function (err, n) {
-                //console.log(calls);
-                console.log('Total Iteration: ' + (count -1));
-                return ibmCallback(null, {'start' : startTime, 'end' : endTime , 'total' : calls.totalCalls, 'status' : 'y'});
-    }
+            function (er, n) {
+                if(er){
+                    return ibmCallback({'start' : startTime, 'end' : endTime, 'error' : er, 'status' : '500'}, null);
+                }else{
+                    
+                    writeErrrorStream.on('finish', () => {  
+                        console.log('wrote all error data to file');
+                    });
+                    
+                    // close the stream
+                    writeErrrorStream.end();  
+                    // summary success
+                   
+                    console.log('Final Iteration: ' + (count -1));
+                    return ibmCallback(null, {'start' : startTime, 'end' : endTime , 'total' : calls.totalCalls, 'status' : 'y', 'successes': success, 'errors': 'n/a'});
+                }
+            }
 );
-    //---test end
-
-    
-
-    //return callback(calls);
-	//return
+ 
 };
-
 
 
 
