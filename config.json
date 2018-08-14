@@ -1,7 +1,9 @@
 {
     "logFile": "apim.log",
-    "success_temp_log": "./results/%s_%s_%s_success.csv",
-    "error_temp_log": "./results/%s_%s_error.csv",
+    "success_temp_log": "./results/success_%s_%s.csv",
+    "error_temp_log": "./results/error_%s_%s.csv",
+    "apim_log": "./logs/log_%s.log",
+    "min" : 10,
     "limit": 300,
     "sandbox": {
         "auth": "Basic YXZpay5zZW5ndXB0YTpEaWdoYSZQdXJpMw==",

@@ -1,12 +1,10 @@
 var request = require('request');
-var config = require('./config.json');
 var util = require("util");
 var f = module.exports = {};
 var async = require("async");
-var Enumerable = require("linq")
 var dateFormat = require('dateformat');
 var config = require('./config.json');
-var clc = require('cli-color');
+
 
 f.getDataFromIBM = function (req, ibmCallback) { 
 	// code goes here
@@ -45,7 +43,8 @@ f.getDataFromIBM = function (req, ibmCallback) {
     
     //files
 
-    let successFile =util.format(config.success_temp_log, startTimeFileName,endTimeFileName );
+    let logFile = util.format(config.apim_log, dateFormat(new Date(), "ddmmyyyy"));
+    
     let errorFile =util.format(config.error_temp_log, startTimeFileName,endTimeFileName);
 
     var path = util.format(pathFormat, org, catalog, endTime, startTime, limit, fields);
@@ -66,7 +65,7 @@ f.getDataFromIBM = function (req, ibmCallback) {
     var success =[];
     var error=[];
     let writeErrrorStream = fs.createWriteStream(errorFile);
-    let writeSuccessStream = fs.createWriteStream(successFile);
+    
     async.whilst(
         function() { return count <= total; },
         function(nextCall) {
@@ -81,7 +80,8 @@ f.getDataFromIBM = function (req, ibmCallback) {
                     {
                         err = 'IBM API is returning status ' + JSON.stringify(res) + '. Please raise a support ticket with IBM';
                         console.log('err: The program shall not run any more' + err );
-                        return ibmCallback({'start' : startTime, 'end' : endTime, 'error' : err, 'status' : '500'}, null);
+                        writeToLogs(JSON.stringify({'start' : startTime, 'end' : endTime, 'error' : err, 'status' : 'N'}));
+                        return ibmCallback({'start' : startTime, 'end' : endTime, 'error' : err, 'status' : 'N'}, null);
                     }
                     console.log('Iteration No ' + count);
                     var thisCall = JSON.parse(body);
@@ -104,7 +104,7 @@ f.getDataFromIBM = function (req, ibmCallback) {
                     thisSuccess= thisCall.calls.filter(element => element.statusCode.startsWith('2'));
                     if(thisSuccess.length>0){
                         thisSuccess.forEach(s => {
-                            success.push( s.apiName + '|' + s.statusCode + '|' + s.requestMethod  );
+                            success.push(s.apiName + '|' + s.statusCode + '|' + s.requestMethod  );
                         });
                         
                     }
@@ -118,25 +118,94 @@ f.getDataFromIBM = function (req, ibmCallback) {
 
             },
             function (er, n) {
+                closeErrorLogs(writeErrrorStream)
                 if(er){
-                    return ibmCallback({'start' : startTime, 'end' : endTime, 'error' : er, 'status' : '500'}, null);
+                    writeToLogs(JSON.stringify({'start' : startTime, 'end' : endTime, 'error' : er, 'status' : 'n'}));
+                    return ibmCallback({'start' : startTime, 'end' : endTime, 'error' : er, 'status' : 'n'}, null);
                 }else{
-                    
-                    writeErrrorStream.on('finish', () => {  
-                        console.log('wrote all error data to file');
-                    });
-                    
-                    // close the stream
-                    writeErrrorStream.end();  
                     // summary success
-                   
+                    //open success stream
+                    let successFile =util.format(config.success_temp_log, startTimeFileName,endTimeFileName );
+                    writeSuccessLogs(successFile,success);
+
                     console.log('Final Iteration: ' + (count -1));
-                    return ibmCallback(null, {'start' : startTime, 'end' : endTime , 'total' : calls.totalCalls, 'status' : 'y', 'successes': success, 'errors': 'n/a'});
+                    writeToLogs(logFile, JSON.stringify({'start' : startTime, 'end' : endTime ,  'status' : 'y', 'successFile': successFile, 'errorFile': errorFile}));
+                    return ibmCallback(null, {'start' : startTime, 'end' : endTime ,  'status' : 'y', 'successFile': successFile, 'errorFile': errorFile});
                 }
             }
 );
  
 };
+
+var writeToLogs = function ( logFileName,  content ){
+    fs.appendFile(logFileName, new Date().toISOString() + '--' +  content + '\n', function(err){
+        if(err){
+            console.log(err + '|' + content );
+        }else{
+            console.log(content + ' written in ' + logFileName );
+        }
+
+    })
+
+}
+
+var writeSuccessLogs = function(fileName, success){
+        //sort first
+        success.sort();
+        let count=0;
+        let grand=0;
+        let summation=[];
+        //set last value to first row value
+        if(success.length>0){
+
+        let writeSuccessStream = fs.createWriteStream(fileName);
+        // write header row
+        writeSuccessStream.write('api|status|method|count\n');
+        let lastValue = "";
+        success.forEach((element,i) => {
+                    if(i==0){
+                        lastValue = element;
+                        count = 1;
+                    } else if(element != lastValue){
+                        //if value changed, so now write down the last element.
+                        
+                        //write line
+                        writeSuccessStream.write(lastValue+'|' + count.toString() + '\n');
+                        // add counter to grand total
+                        grand = grand + count;
+                        //reset counter
+                        count = 1;
+                        //add last value to this value
+                        lastValue = element;
+                        
+                    }else{
+                        //increment counter
+                        count++;
+                    }
+        });
+        //write final value
+        
+        writeSuccessStream.write(lastValue+'|' + count.toString() + '\n');
+        grand = grand + count;
+        // write footer row
+        //writeSuccessStream.write('--|--|--|' + grand.toString());
+        
+        writeSuccessStream.on('finish', () => {  
+            console.log('wrote all summary 200 data to file');
+        });
+        
+        // close the stream
+        writeSuccessStream.end(); 
+    }
+}
+
+var closeErrorLogs = function(stream){
+    stream.on('finish', () => {  
+        console.log('wrote all error data to file');
+    });
+    // close the stream
+    stream.end(); 
+}
 
 
 
