@@ -8,7 +8,11 @@
             "type": "node",
             "request": "launch",
             "name": "Launch Program",
-            "program": "${workspaceFolder}/app.js"
+            "program": "${workspaceFolder}/app.js",
+            "args": [
+                "sandbox" ,"2018-07-10T00:00:00", "2018-07-15T11:59:59"
+            ]
+            
         }
     ]
 }

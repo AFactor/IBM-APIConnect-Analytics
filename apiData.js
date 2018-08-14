@@ -4,30 +4,36 @@ var f = module.exports = {};
 var async = require("async");
 var dateFormat = require('dateformat');
 var config = require('./config.json');
+var fs = require("fs");
 
-
-f.getDataFromIBM = function (req, ibmCallback) { 
+f.getDataFromIBM = function () { 
 	// code goes here
 
+    console.log(process.argv);
 	
-    var startTime = req.query.startTime;
-    var endTime = req.query.endTime;
-    var environment = req.query.env;
+    var startTime = "";
+    var endTime = "";
+    var environment = process.argv[2];
 	var config = require('./config.json');
     
-	
-	if(!endTime)
+	// set default time range if no end time is sent.
+	if(!process.argv[4]) //end time
 	{
         var end = new Date();
         endTime = end.toISOString();
         var start = end;
         start.setMinutes(end.getMinutes() -config.min);
-        
-		
         startTime = start.toISOString();
-        
         console.log( 'Start: ' + startTime + ' End: ' + endTime);
-	}
+	}else{
+        endTime = process.argv[4];
+        if(!process.argv[3]){
+            console.log('Either pass the full time range or leave it empty for default');
+            process.exit(-1);
+        }else{
+            startTime = process.argv[3];
+        }
+    }
 	
     var startTimeFileName = dateFormat(startTime, "ddmmyyyyhhMMssTT");
     var endTimeFileName = dateFormat(endTime, "ddmmyyyyhhMMssTT");
@@ -60,11 +66,10 @@ f.getDataFromIBM = function (req, ibmCallback) {
     
     var calls = {"totalCalls":0,"next":"","nextHref": url,"calls":[]};
     var count = 1;
-    var errorHeader=false;
     var total = 1;
     var success =[];
     var error=[];
-    let writeErrrorStream = fs.createWriteStream(errorFile);
+    
     
     async.whilst(
         function() { return count <= total; },
@@ -81,7 +86,7 @@ f.getDataFromIBM = function (req, ibmCallback) {
                         err = 'IBM API is returning status ' + JSON.stringify(res) + '. Please raise a support ticket with IBM';
                         console.log('err: The program shall not run any more' + err );
                         writeToLogs(JSON.stringify({'start' : startTime, 'end' : endTime, 'error' : err, 'status' : 'N'}));
-                        return ibmCallback({'start' : startTime, 'end' : endTime, 'error' : err, 'status' : 'N'}, null);
+                        
                     }
                     console.log('Iteration No ' + count);
                     var thisCall = JSON.parse(body);
@@ -92,24 +97,18 @@ f.getDataFromIBM = function (req, ibmCallback) {
                         console.log('Estimated iteration: ' + total);
                     }
                     calls.nextHref = thisCall.nextHref;
-                    let thisError= thisCall.calls.filter(element => (element.statusCode.startsWith('4') || element.statusCode.startsWith('5')));
-                    if(thisError.length>0){
-                        if(!errorHeader){
-                            errorHeader = true;
-                            writeErrrorStream.write(Object.keys(thisError[0]).join('|')+ '\n');
-                        }
-                        writeErrrorStream.write(thisError.map(e => Object.values(e).join('|')).join('\n'));
-                        //errors.push(thisError);
-                    }
-                    thisSuccess= thisCall.calls.filter(element => element.statusCode.startsWith('2'));
-                    if(thisSuccess.length>0){
-                        thisSuccess.forEach(s => {
-                            success.push(s.apiName + '|' + s.statusCode + '|' + s.requestMethod  );
+                    //push error calls
+                    thisCall.calls
+                        .filter(element => (element.statusCode.startsWith('4') || element.statusCode.startsWith('5')))
+                            .forEach(e => error.push(e));
+                    //push 2xx calls
+                    thisCall.calls
+                        .filter(element => element.statusCode.startsWith('2'))
+                            .forEach(s => {
+                                success.push(s.productName + ',' + s.apiName + ',' + s.statusCode + ',' + s.requestMethod  );
                         });
                         
-                    }
-                    
-        
+                    //increment count and go over the loop.
                     count++;
                     nextCall();
                                 
@@ -118,19 +117,18 @@ f.getDataFromIBM = function (req, ibmCallback) {
 
             },
             function (er, n) {
-                closeErrorLogs(writeErrrorStream)
+                
                 if(er){
                     writeToLogs(JSON.stringify({'start' : startTime, 'end' : endTime, 'error' : er, 'status' : 'n'}));
-                    return ibmCallback({'start' : startTime, 'end' : endTime, 'error' : er, 'status' : 'n'}, null);
                 }else{
                     // summary success
                     //open success stream
                     let successFile =util.format(config.success_temp_log, startTimeFileName,endTimeFileName );
                     writeSuccessLogs(successFile,success);
-
+                    // error file
+                    writeErrorLogs(errorFile, error);
                     console.log('Final Iteration: ' + (count -1));
-                    writeToLogs(logFile, JSON.stringify({'start' : startTime, 'end' : endTime ,  'status' : 'y', 'successFile': successFile, 'errorFile': errorFile}));
-                    return ibmCallback(null, {'start' : startTime, 'end' : endTime ,  'status' : 'y', 'successFile': successFile, 'errorFile': errorFile});
+                    writeToLogs(logFile, JSON.stringify({'start' : startTime, 'end' : endTime ,  'status' : 'y', 'successFile': successFile, 'errorFile': errorFile}));  
                 }
             }
 );
@@ -160,7 +158,7 @@ var writeSuccessLogs = function(fileName, success){
 
         let writeSuccessStream = fs.createWriteStream(fileName);
         // write header row
-        writeSuccessStream.write('api|status|method|count\n');
+        writeSuccessStream.write('product,api,status,method,count\n');
         let lastValue = "";
         success.forEach((element,i) => {
                     if(i==0){
@@ -199,12 +197,17 @@ var writeSuccessLogs = function(fileName, success){
     }
 }
 
-var closeErrorLogs = function(stream){
-    stream.on('finish', () => {  
-        console.log('wrote all error data to file');
-    });
-    // close the stream
-    stream.end(); 
+var writeErrorLogs = function(fileName, error){
+    let data = JSON.stringify(error);
+    fs.writeFile(fileName, data , function(err){
+        if(err){
+            console.log(err + '| Fault writing error events'   );
+        }else{
+            console.log('Error events written in ' + fileName );
+        }
+
+    })
+
 }
 
 
