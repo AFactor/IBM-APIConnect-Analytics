@@ -13,7 +13,7 @@ f.getDataFromIBM = function () {
 	
     var startTime = "";
     var endTime = "";
-    var environment = process.argv[2];
+    var environment = process.argv[2] || 'prd';
 	var config = require('./config.json');
     
 	// set default time range if no end time is sent.
